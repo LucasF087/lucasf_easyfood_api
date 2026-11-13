@@ -1,3 +1,4 @@
+
 name: CI
 
 on:
@@ -66,9 +67,7 @@ jobs:
       - name: Rodar a suíte de testes (node --test)
         run: npm test
 
-      # Informativo, não bloqueia o build. As 3 vulnerabilidades altas que
-      # aparecem vêm da CLI do Prisma e não têm correção não-breaking hoje —
-      # o detalhe está em "Limitações conhecidas" no README.
+      # Informativo, não bloqueia o build.
       - name: npm audit (informativo)
         continue-on-error: true
         run: npm audit
@@ -95,8 +94,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/easyfood
-      # Banco vazio e descartável, só para o prisma:check (ver
-      # scripts/prisma-check.js): o Prisma aplica e desfaz migrations nele.
+      # Banco vazio e descartável, só para o prisma:check.
       SHADOW_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/easyfood_shadow
       PORT: 3000
       NODE_ENV: development
@@ -124,9 +122,7 @@ jobs:
       - name: Aplicar as migrations (prisma migrate deploy)
         run: npx prisma migrate deploy
 
-      # Compara o schema.prisma com o banco real. Existe porque a migration
-      # que vincula restaurante -> usuário foi escrita à mão, sem passar por
-      # `prisma migrate dev` (ver docs/manutencao.md, seção 7).
+      # Compara o schema.prisma com o banco real.
       - name: Verificar o schema contra o banco (prisma:check)
         run: npm run prisma:check
 
@@ -155,10 +151,7 @@ jobs:
       - name: Smoke test de ponta a ponta
         run: BASE_URL=http://localhost:3000 bash scripts/smoke-test.sh
 
-      # A atividade do cadastro é gravada na tabela Activity (Atividade 6). O
-      # smoke test cadastrou um restaurante, então tem de haver ao menos uma
-      # linha "restaurant.created". (O e-mail, sem EMAIL_API_KEY no CI, só é
-      # simulado em log: o envio real não é testado aqui.)
+      # Confere se a atividade do cadastro foi persistida.
       - name: Conferir a atividade persistida no banco
         run: |
           total=$(PGPASSWORD=postgres psql -h localhost -U postgres -d easyfood -tAc \
@@ -177,23 +170,27 @@ jobs:
   seguranca:
     name: Escaneamento de segredos (gitleaks)
     runs-on: ubuntu-latest
-    # Não depende de "build": um segredo commitado é grave o bastante para
-    # não esperar o resto do pipeline terminar antes de avisar.
 
     steps:
       - name: Checkout (histórico completo)
         uses: actions/checkout@v4
         with:
-          # fetch-depth 0 traz todo o histórico de commits, não só o último —
-          # sem isso, um segredo commitado e depois removido num commit
-          # seguinte passaria batido.
           fetch-depth: 0
 
-      # gitleaks-action é gratuita para repositórios públicos, sem precisar
-      # de GITLEAKS_LICENSE. Só é necessária a licença (secrets.GITLEAKS_LICENSE)
-      # se este repositório se tornar privado — ver
-      # https://github.com/gitleaks/gitleaks-action
-      - name: Rodar gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Instala uma versão fixa do Gitleaks.
+      - name: Instalar Gitleaks
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.24.3/gitleaks_8.24.3_linux_x64.tar.gz -o /tmp/gitleaks.tar.gz
+          mkdir -p /tmp/gitleaks
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp/gitleaks
+          sudo install /tmp/gitleaks/gitleaks /usr/local/bin/gitleaks
+
+      # Analisa o histórico completo, sem depender do intervalo de commits
+      # calculado automaticamente pela gitleaks-action.
+      - name: Rodar Gitleaks (histórico completo)
+        run: |
+          gitleaks detect \
+            --source . \
+            --redact \
+            --verbose \
+            --exit-code 2
