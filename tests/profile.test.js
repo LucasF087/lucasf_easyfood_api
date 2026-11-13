@@ -76,6 +76,14 @@ test("envia a foto: vira WebP de até 800 px em uploads/profiles e aparece no /a
 
   const me = await request("/auth/me", { token });
   assert.equal(me.body.user.imageUrl, r.body.imageUrl);
+
+  // Confirma que o caminho persistido também é servido publicamente por HTTP.
+  const imagemHttp = await fetch(`${server.baseUrl}${me.body.user.imageUrl}`);
+  assert.equal(imagemHttp.status, 200);
+  assert.match(imagemHttp.headers.get("content-type") || "", /^image\/webp(?:;|$)/);
+  const imagemRecebida = Buffer.from(await imagemHttp.arrayBuffer());
+  assert.ok(imagemRecebida.length > 0);
+  assert.equal((await sharp(imagemRecebida).metadata()).format, "webp");
 });
 
 test("trocar a foto remove o arquivo antigo", async () => {
