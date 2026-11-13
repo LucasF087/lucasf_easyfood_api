@@ -23,16 +23,16 @@
     "postgresql",
     "jwt"
   ],
-  "author": "Lucas Ferreira da Silva (RA 129733)",
+  "author": "Lucas Ferreira da Silva",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/LucasF087/easyfood_api_lucasf.git"
+    "url": "git+https://github.com/LucasF087/lucasf_easyfood_api.git"
   },
   "bugs": {
-    "url": "https://github.com/LucasF087/easyfood_api_lucasf/issues"
+    "url": "https://github.com/LucasF087/lucasf_easyfood_api/issues"
   },
-  "homepage": "https://github.com/LucasF087/easyfood_api_lucasf#readme",
+  "homepage": "https://github.com/LucasF087/lucasf_easyfood_api#readme",
   "description": "API do projeto EasyFood — restaurantes, cardápio com imagens otimizadas, foto de perfil, e-mail e atividade persistida, com autenticação JWT e PostgreSQL via Prisma.",
   "prisma": {
     "seed": "node prisma/seed.js"
