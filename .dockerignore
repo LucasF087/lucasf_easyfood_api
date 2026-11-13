@@ -1,0 +1,11 @@
+node_modules
+.git
+.github
+.env
+npm-debug.log
+uploads/*
+!uploads/.gitkeep
+docs
+tests
+*.md
+!README.md

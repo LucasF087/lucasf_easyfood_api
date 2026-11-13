@@ -1,0 +1,74 @@
+// Schema do Prisma — modelo de dados da EasyFood.
+// Documentação: https://pris.ly/d/prisma-schema
+//
+// Regra do projeto: toda alteração aqui precisa de uma migration SQL
+// correspondente em prisma/migrations/. O teste tests/schema.test.js compara
+// os dois automaticamente (colunas, tipos, nulidade, índices e chaves
+// estrangeiras) para que schema e migrations não saiam de sincronia.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Restaurant {
+  id       Int      @id @default(autoincrement())
+  name     String   @db.VarChar(150)
+  category String?  @db.VarChar(100)
+  rating   Decimal? @db.Decimal(2, 1)
+
+  // Dono do restaurante: quem cadastrou pelo POST /restaurants.
+  // Opcional porque os registros anteriores ao vínculo (e os do seed) não têm
+  // dono. Se o usuário for excluído, o restaurante continua existindo
+  // e volta a ficar sem dono (SetNull).
+  userId Int?
+  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  dishes Dish[]
+
+  @@index([userId])
+}
+
+model User {
+  id       Int    @id @default(autoincrement())
+  name     String @db.VarChar(150)
+  email    String @unique @db.VarChar(150)
+  password String @db.VarChar(255)
+
+  // Foto de perfil (caminho público do WebP otimizado, pasta uploads/profiles).
+  // Opcional: o usuário nasce sem foto. Reaproveita o image.service (ADR-007).
+  imageUrl String? @db.VarChar(255)
+
+  restaurants Restaurant[]
+}
+
+// Trilha de atividades do sistema (Atividade 6): cada ação relevante grava uma
+// linha aqui, em vez de apenas escrever no log do servidor. Sem relações de
+// propósito: é um registro histórico que não deve sumir se o usuário ou o
+// restaurante forem excluídos.
+model Activity {
+  id        Int      @id @default(autoincrement())
+  action    String   @db.VarChar(100)
+  details   String?
+  createdAt DateTime @default(now())
+}
+
+// Prato do cardápio. Pertence a um restaurante; se o restaurante for excluído,
+// o cardápio dele vai junto (Cascade). imageUrl guarda o caminho público da
+// imagem já otimizada (WebP) e é opcional: o prato nasce sem imagem.
+model Dish {
+  id          Int     @id @default(autoincrement())
+  name        String  @db.VarChar(150)
+  description String  @db.VarChar(500)
+  price       Decimal @db.Decimal(10, 2)
+  imageUrl    String? @db.VarChar(255)
+
+  restaurantId Int
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([restaurantId])
+}
